@@ -1,0 +1,4 @@
+alias roscore=roscore -p 11462
+export ROS_MASTER_URI=http://localhost:11462
+export GAZEBO_MASTER_URI=http://localhost:11463
+
