@@ -14,41 +14,53 @@ from cv_bridge import CvBridge, CvBridgeError
 
 class colourIdentifier():
     def __init__(self):
-        # Initialise the value for self.sensitivity in the colour detection (10 should be enough)
-
-        # Remember to initialise a CvBridge() and set up a subscriber to the image topic you wish to use
-
-        # We covered which topic to subscribe to should you wish to receive image data
+        # Initialise self.sensitivity colour detection value (10 should be enough)
+		self.sensitivity = 10
+        # Initialise a CvBridge()
+		self.bridge = CvBridge()
+        # Set up a subscriber to the image topic you wish to use
+		self.image_sub = rospy.Subscriber('camera/rgb/image_raw', Image, self.callback)
 
     def callback(self, data):
-        # Convert the received image into a opencv image
-        # But remember that you should always wrap a call to this conversion method in an exception handler
-
-        # Set the upper and lower bounds for the green colour (HSV) here
-
-        # Convert the rgb image into a hsv image
-
+        # Convert received image into opencv image
+        # Wrap call to conversion method in exception handler
+		try:
+			cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+		except CvBridgeError as error:
+			print(error)
+        # Set upper and lower bounds for green colour (HSV)
+		hsv_green_lower = np.array([60-self.sensitivity, 100, 100])
+		hsv_green_upper = np.array([60+self.sensitivity, 255, 255])
+        # Convert rgb image into hsv image
+		hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
         # Filter out everything but the green colour using the cv2.inRange() method here. Use the green upper and lower for the range.
-        ##mask_name = cv2.inRange(converted_image, lower, upper)
+		green_mask = cv2.inRange(hsv_image, hsv_green_lower, hsv_green_upper)
 
         # Apply the mask to the original image using the cv2.bitwise_and() method
-        # As mentioned on the worksheet the best way to do this is to bitwise_and an image with itself and pass the mask to the mask parameter
-        # As opposed to performing a bitwise_and on the mask and the image.
-        ##mask_image=cv2.bitwise_and(image_name,image_name, mask=mask_name)
-
+        # bitwise_and an image with itself and pass the mask to the mask parameter
+        # instead of performing a bitwise_and on the mask and the image.
+		mask_image=cv2.bitwise_and(cv_image,cv_image, mask=green_mask)
 
         # Show the resultant images you have created. You can show all of them or just the end result if you wish to.
+		cv2.namedWindow('camera_Feed')
+		cv2.imshow('camera_Feed', mask_image)
+		cv2.waitKey(3)
 
 # Create a node of your class in the main and ensure it stays up and running
 # handling exceptions and such
 def main(args):
-    # Instantiate your class
+    # Instantiate class
+	cI = colourIdentifier()
     # And rospy.init the entire node
-    cI = colourIdentifier()
-    # Ensure that the node continues running with rospy.spin()
-    # You may need to wrap rospy.spin() in an exception handler in case of KeyboardInterrupts
-
-    # Remember to destroy all image windows before closing node
+	rospy.init_node('first_step', anonymous=True)
+    # Ensure that node continues running with rospy.spin()
+    # Wrap rospy.spin() in exception handler for KeyboardInterrupts
+	try:
+		rospy.spin()
+	except KeyboardInterrupt:
+		print("Closing Program")
+    # Destroy image windows before closing node
+	cv2.destroyAllWindows()
 
 # Check if the node is executing in the main path
 if __name__ == '__main__':
